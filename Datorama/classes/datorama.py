@@ -44,7 +44,7 @@ class datorama():
             if not os.path.exists(os.path.dirname(self.restore_path)):
                 os.mkdir(os.path.dirname(self.restore_path) )
             os.mkdir(self.restore_path)
-        
+
         if not os.path.exists(self.log_path):
             os.mkdir(self.log_path)
 
@@ -55,10 +55,10 @@ class datorama():
             content = json.load(f)
 
         self.workspaces = {ws.get('id'):Workspace(self,attributes=ws) for ws in content}
-        
+
         if restore_streams:
             for space in self.workspaces.values(): space.restore_streams()
-        
+
         if restore_jobs:
             for stream in self.streams.values(): stream.restore_jobs()
 
@@ -87,7 +87,7 @@ class datorama():
         status = 'queued'
         if isError:
             status = 'error'
-            
+
         if workspace not in self.logs['job_log']: self.logs['job_log'][workspace] = {}
         if stream not in self.logs['job_log'][workspace]: self.logs['job_log'][workspace][stream] = {}
 
@@ -106,7 +106,7 @@ class datorama():
 
     def get_workspaces(self):
         '''Get request to pull the metadata for all workspaces from the api.'''
-        
+
         try:
             if self.connection.verbose:
                 print('getting workspaces')
@@ -140,7 +140,7 @@ class datorama():
         '''Loop through all workspaces and retrieve the dimensions.'''
 
         print('- getting dimensions for all workspaces -')
-        
+
         print('\tmaking calls to api')
         self.dimensions = {}
         cnt = len(self.workspaces)
@@ -172,7 +172,7 @@ class datorama():
                     'lastUpdate','lastRunStatus','lastRowsRetrieved','processedRows',
                     'lastDataDate'
                 ]
-        
+
         print('- creating stream data frame -')
         self.stream_meta = []
         for stream in self.streams.values():
@@ -190,12 +190,12 @@ class datorama():
     def get_all_streams(self,workspaces=None):
         '''Loops through all workspace objects and triggers each ones 'get_streams' function.'''
 
-        print('- getting metadata for all streams -')        
+        print('- getting metadata for all streams -')
         if not workspaces:
             workspaces = self.workspaces
         else:
             workspaces = {k:v for k,v in self.workspaces.items() if v.id in workspaces}
-        
+
         print('\tmaking calls to api')
         cnt = len(workspaces)
         rtimer = Timer(cnt)
@@ -296,7 +296,7 @@ class datorama():
                 raise Unequal_Input_Error()
         else:
             streams,names = [streams],[names]
-        
+
         cnt = len(streams)
         rtimer = Timer(cnt)
         print(f'- updating {cnt} streams -')
@@ -365,10 +365,10 @@ class datorama():
                         job.update( {'status':'failure'} )
                         continue
                     job.update( {'status':'submitted'} )
-            
+
             total = sum( [space.pending for space in self.workspaces.values() ] )
             print(f'total pending: {total}')
-            
+
             if all_jobs_submitted():
                 if all( [space.ws_state != 'active' for space in self.workspaces.values()] ):
                     print('all spaces finished')
@@ -376,7 +376,7 @@ class datorama():
                 if total == 0:
                     print('all jobs finished')
                     all_jobs_complete = True
-            
+
             for space in self.workspaces.values():
                 if space.ws_state == 'active':
                     space.queue_check()
@@ -384,7 +384,7 @@ class datorama():
             if all_jobs_submitted() or not bandwidth():
                 print(f'no bandwidth for additional jobs, pausing for {sleep_cadence} seconds')
                 sleep(sleep_cadence)
-        
+
         if create_df:
             self.create_job_log_df(
                 log_file=f"{file_name} {job_type} {dt.now().strftime('%Y-%m-%d %H_%M_%S')}.csv",
@@ -409,7 +409,7 @@ class datorama():
                     The output filename with extension. Must be a csv file.
                     For the previous log to be appended, the filename must be the same.
         '''
-        
+
         jobs = [ {'stream':stream,'status':'na'} for stream in streams]
         self.execute_job(
             job_dict=jobs,job_type='rerun_all',
@@ -476,7 +476,7 @@ class datorama():
         for (s,st,en) in zip(streams,starts,ends):
             for stream,start,end in self.date_partition_check(s,st,en,d_range):
                 jobs.append( {'stream':stream,'params':{'start':start,'end':end},'status':'na'} )
-        
+
         self.execute_job(
             job_dict=jobs,job_type='process',
             create_df=create_df,export=export,file_name=file_name
@@ -498,7 +498,7 @@ class datorama():
                     workspace=self.streams[stream].workspaceId,stream=stream,job='generic',
                     job_type='batch_processing',start=start_date,end=end_date
                     )
-        
+
         except Exception as X:
             self.log_error(
                 source_module='datorama',function_triggered='process_stream_batch',error_raised=str(X),detail=payload
@@ -509,7 +509,7 @@ class datorama():
                     job_type='batch_processing',start=start_date,end=end_date,isError=True
                     )
 
-    
+
     def date_partition_check(self,stream,start,end,d_range):
         '''Partitions a date range into chunks based on the d_range.'''
 
@@ -522,7 +522,7 @@ class datorama():
         else:
             return [(stream,start,end)]
 
-        
+
     def download_stats(self,folder_path):
         '''
         Loop through the jobs dictionary and collect the statistic files.
@@ -536,7 +536,7 @@ class datorama():
                         self.log_error(
                             source_module='datorama',function_triggered='download_stats',error_raised=str(x),detail={'stream':stream.id,'job':job.id}
                             )
-        
+
         except Exception as X:
             self.log_error(
                 source_module='datorama',function_triggered='download_stats',error_raised=str(x),detail='general'

@@ -44,27 +44,27 @@ class Stream():
         except FileNotFoundError:
             print(f'No restoration file for {self.id}')
 
-    
+
     def get_meta_data(self,ret=False):
         ''' Gathers the meta data for the stream. If ret=True, the response is returned. '''
-        
+
         try:
             if self.connection.verbose:
                 print('- getting workspace metadata -')
 
             self.get_meta_data_response = self.connection.call(method='GET',endpoint=f'/v1/data-streams/{self.id}')
             output = self.get_meta_data_response.json()
-            
+
             if ret:
                 return output
 
             self.__dict__.update(output)
-        
+
         except Exception as X:
             self.log_error(
                 source_module='datastream',function_triggered='get_meta_data',error_raised=str(X),detail={'stream':self.id}
                 )
-    
+
 
     def delete(self):
         '''Deletes the stream.'''
@@ -72,7 +72,7 @@ class Stream():
         try:
             self.connection.call(method='delete',endpoint=f'/v1/data-streams/{self.id}')
             self.log_update(action='delete',obj=self.id)
-            
+
         except Exception as X:
             self.log_error(source_module='datastream',function_triggered='delete',error_raised=str(X),detail={'stream':self.id} )
 
@@ -122,13 +122,13 @@ class Stream():
             payload = {'startDate':start,'endDate':end}
             self.process_response = self.connection.call(method='POST',endpoint=f'/v1/data-streams/{self.id}/process',body=payload)
             self.process_content = self.process_response.json()
-            
+
             for job in self.process_content:
                 self.log_job(workspace=self.__dict__.get('workspaceId'),stream=self.id,job=job.get('id'),job_type='process',start=job.get('dataStartDate'),end=job.get('dataEndDate') )
-            
+
             self.queue_eval()
             return True
-        
+
         except Exception as X:
             self.log_error(source_module='datastream',function_triggered='process',error_raised=str(X),detail={'stream':self.id} )
             self.log_job(workspace=self.__dict__.get('workspaceId'),stream=self.id,job='na',job_type='process',start=start,end=end,isError=True)
@@ -141,14 +141,14 @@ class Stream():
         try:
             if self.connection.verbose:
                 print(f'- getting stream mapping for {self.id} -')
-            
+
             self.get_mapping_response = self.connection.call(method='GET',endpoint=f'data-streams/api/{self.id}/mapping')
             self.mapping = self.get_mapping_response.json()
 
         except Exception as X:
             self.log_error(source_module='datastream',function_triggered='get_mapping',error_raised=str(X),detail={'stream':self.id} )
 
-    
+
     def update_mapping(self,params):
         '''
         Update the mapping configuration for a data stream.
@@ -220,7 +220,7 @@ class Stream():
         except Exception as X:
             self.log_error(source_module='datastream',function_triggered='patch',error_raised=str(X),detail={'stream':self.id} )
 
-    
+
     def rerun_all_jobs(self,*args):
         ''' Rerun all jobs for the data stream. '''
 
@@ -236,10 +236,10 @@ class Stream():
 
             for job in self.rerun_all_content:
                 self.log_job(workspace=self.__dict__.get('workspaceId'),stream=self.id,job=job.get('id'),job_type='rerun',start=job.get('dataStartDate'),end=job.get('dataEndDate') )
-            
+
             self.queue_eval()
             return True
-        
+
         except Exception as X:
             self.log_error(source_module='datastream',function_triggered='rerun_all_jobs',error_raised=str(X),detail={'stream':self.id} )
             return 'failed'
@@ -254,14 +254,14 @@ class Stream():
                 pgNum (integer)
                     Not really relevant now as the page numbers should loop until there are no more rows.
         '''
-        
+
         try:
             if self.connection.verbose:
                 print( f'- getting stream runs for: {self.id} -' )
-            
+
             endOfList = False;all_content = []
             while not endOfList:
-                
+
                 try:
                     payload = {'pageSize':pgSize,'pageNumber':pgNum}
                     self.runs_response = self.connection.call(method='POST',endpoint=f'/v1/data-streams/api/{self.id}/stats',body=payload)
@@ -269,22 +269,22 @@ class Stream():
 
                     if len(self.runs_content) < pgSize:
                         endOfList = True
-                    
+
                     if self.id not in self.jobs: self.jobs[self.id] = {}
                     all_content.extend(self.runs_content)
                     for stat in self.runs_content:
                         self.jobs[self.id].update( {stat.get('id'):Job(self,attributes=stat) } )
-                    
+
                     pgNum += 1 # Next page
-                
+
                 except:
                     endOfList = True
 
             self.store_jobs(all_content)
-            
+
         except Exception as X:
             self.log_error(source_module='datastream',function_triggered='get_stream_runs',error_raised=str(X),detail={'stream':self.id} )
-            
+
 
     def store_jobs(self,job_content):
         ''
@@ -315,7 +315,7 @@ class Stream():
 
             if self.connection.verbose:
                 print(f'- rerunning stream: {self.id} job_ids: {job_ids} -')
-            
+
             if type(job_ids) is not list: job_ids = [job_ids]
 
             self.rerun_response = self.connection.call(method='POST',endpoint=f'/v1/data-streams/api/{self.id}/rerun',body=job_ids)

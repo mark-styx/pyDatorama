@@ -29,7 +29,7 @@ class Job():
 
             output = self.get_meta_data_response.json()
             self.__dict__.update(output)
-            
+
         except Exception as X:
             self.log_error(source_module='run_stat',function_triggered='get_meta_data',error_raised=str(X),detail={'workspace':self.id,'api_response':str(self.get_meta_data_response.content) } )
 
@@ -40,7 +40,7 @@ class Job():
         try:
             if self.connection.verbose:
                 print(f'- rerunning stream: {self.streamId} job_id: {self.id} -')
-            
+
             self.rerun_response = self.connection.call(method='POST',endpoint=f'/v1/data-streams/api/{self.streamId}/rerun',body=[self.id])
             self.rerun_content = self.rerun_response.json()
             self.log_job(workspace=self.workspaceId,stream=self.streamId,job=self.id,job_type='rerun',start=self.rerun_content.get('dataStartDate'),end=self.rerun_content.get('dataEndDate') )
@@ -65,7 +65,7 @@ class Job():
             else:
                 endpoint = f'/v1/data-stream-stats/api/{self.id}/download'
                 fname = f'{self.workspaceId}_{self.streamId}_{self.id}_data.zip'
-            
+
             self.download_response = self.connection.call(method='get',endpoint=endpoint)
             if self.download_response:
                 with open(folder_path + f'/{fname}','wb') as f:
@@ -73,7 +73,7 @@ class Job():
                 return fname
             else: return 'No_Data'
 
-        
+
         except Exception as X:
             self.log_error(
                 source_module='run_stat',

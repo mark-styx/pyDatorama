@@ -31,7 +31,7 @@ class Connect():
                 return pickle.load(f).get('timestamp') == self.last_update
         except: return False
 
-        
+
     def load_connection(self):
         '''Loads the connection state file that contains the daily and active platform calls.'''
 
@@ -74,7 +74,7 @@ class Connect():
 
     def save_connection(self):
         '''Updates the connection state file with the new daily and active platform calls.'''
-        
+
         main,bkup,temp = self.conn_path/'connection.main',self.conn_path/'connection.bkup',self.conn_path/'connection.temp'
 
         retries = 0
@@ -112,7 +112,7 @@ class Connect():
             )
         with open(self.log_path/f'{self.instanceId}_call_log.json','w') as f:
             json.dump(self.call_history,f)
-    
+
 
     def call(self,method,endpoint,body=None,call_type='platform'):
         '''Makes the api request; Raises error if response not 200 or 201.'''
@@ -129,7 +129,7 @@ class Connect():
             if 'Too Many Requests' in str(req.content):
                 sleep(10)
                 self.call(method=method,endpoint=endpoint,body=body,call_type=call_type)
-                
+
             if req.status_code not in [200,201]:
                 if self.verbose:
                     print(f'\terror: {req.status_code}')
@@ -138,10 +138,10 @@ class Connect():
             if self.verbose:
                 print( f'\tresponse: {req.status_code}' )
                 print('- done -')
-            
+
             sleep(self.pause)
             return req
-        
+
         except Exception as X:
             try: req = req.content
             except: pass
@@ -152,10 +152,10 @@ class Connect():
 
         self.daily_reset = dt.fromtimestamp(int(response.headers.get('X-DailyQuota-Reset') )/1000)
         self.daily_rem = int(response.headers.get('X-DailyQuota-Remaining'))
-        
+
         self.platform_reset = dt.fromtimestamp(int(response.headers.get('X-PlatformRateLimit-Reset') )/1000)
         self.platform_rem = int(response.headers.get('X-PlatformRateLimit-Remaining'))
-        
+
         self.query_reset = dt.fromtimestamp(int(response.headers.get('X-QueryRateLimit-Reset') )/1000)
         self.query_rem = int(response.headers.get('X-QueryRateLimit-Remaining'))
 
@@ -176,7 +176,7 @@ class Connect():
 
         self.save_connection()
 
-    
+
     def check_daily_calls(self):
         '''Evaluate whether or not the daily call limit has been reached and waits for the reset if met.'''
 
@@ -192,7 +192,7 @@ class Connect():
             print(f'- platform rate limit reached, reset occurs at {self.platform_reset} -')
             sleep(self.platform_rate_pause)
 
-    
+
     def check_query_calls(self):
         '''Checks the number of active calls and pauses for the set time if the limit is reached.'''
 

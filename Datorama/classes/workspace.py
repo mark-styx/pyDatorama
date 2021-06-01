@@ -11,7 +11,7 @@ from Datorama import Stream
 class Workspace():
     ''' Workspace class to represent the Datorama workspace object. '''
 
-    def __init__(self,datorama,attributes=None,workspace_id=None,queue_max=15,restore_streams=False,throttle_jobs=True):
+    def __init__(self,datorama,attributes=None,workspace_id=None,queue_max=15,restore_streams=False,throttle_jobs=False):
         self.restore_path = Path(os.path.dirname(inspect.getsourcefile(Workspace) ) )/'restoration/streams'
         self.check_backup_folders()
         self.ws_state = 'idle';self.ws_state_ts = dt.now()
@@ -42,7 +42,7 @@ class Workspace():
             content = json.load(f)
         for dstr in content:
             self.streams.update( {dstr.get('id'):Stream(self,attributes=dstr) } )
-            
+
 
     def get_meta_data(self):
         '''Get the metadata for the workspace.'''
@@ -53,14 +53,14 @@ class Workspace():
 
             self.get_meta_data_response = self.connection.call(method='GET',endpoint=f'/v1/workspaces/{self.id}')
             self.__dict__.update(self.get_meta_data_response.json() )
-        
+
         except Exception as X:
             self.log_error(source_module='workspace',function_triggered='get_meta_data',error_raised=str(X),detail={'workspace':self.id} )
 
 
     def queue_check(self):
         '''Checks the jobs that have been submitted to determine how many are still pending.'''
-        
+
         if not self.throttle:
             return True
 
@@ -110,7 +110,7 @@ class Workspace():
             self.log_error(source_module='workspace',function_triggered='queue_eval',error_raised=str(X),detail={'workspace':self.id} )
             raise RuntimeError()
 
-    
+
     def pending_queue(self):
         '''Update the pending jobs based on the job log.'''
 
@@ -119,7 +119,7 @@ class Workspace():
             if not queue:
                 return []
             return [ {'stream':job.get('stream'),'job':job.get('job')} for stream in queue.values() for job in stream.values() if job.get('status') not in ['success','failure','error'] ]
-        
+
         except Exception as X:
             self.log_error(source_module='workspace',function_triggered='pending_queue',error_raised=str(X),detail={'workspace':self.id} )
             raise RuntimeError()
@@ -254,7 +254,7 @@ class Workspace():
                 if self.connection.verbose:
                     print('Input parameters missing stream name.')
                 raise MissingStreamName()
-            
+
             if self.connection.verbose:
                 print(f'- creating data stream {params.get("name")} -')
 

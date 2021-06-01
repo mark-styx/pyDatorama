@@ -3,7 +3,7 @@ from datetime import datetime as dt
 from datetime import timedelta as td
 
 class Timer():
-    
+
     def __init__(self,length):
         ''
         self.start = dt.now()

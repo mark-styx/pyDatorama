@@ -2,7 +2,7 @@
 
 ## *Overview*
 
-The purpose of this library is to provide simple tools to interface with the Datorama api. An api token provided by Datorama is required to access the api. This library is currently limited to the 'platform' requests. These functions generally are used for streamlining or automating administrative and bulk management tasks for Datorama. The available functionality includes:
+The purpose of this library is to provide simple wrapper to interface with the Datorama api. An API token provided by Datorama is required to access the API. This library is currently limited to the 'platform' requests. These functions generally are used for streamlining or automating administrative and bulk management tasks for Datorama. The available functionality includes:
 
 - Bulk stream processing
 - Bulk stream renaming
@@ -17,10 +17,12 @@ The purpose of this library is to provide simple tools to interface with the Dat
 
 Future developments should include:
 
-- Stream deletion
-- Update stream mapping
 - Reporting api functions
+- Shuffling tokens as rate limits are reached
 - User/Workspace management functions
+
+
+Not all functionality is present in this document. Functions and attributes can be accessed through each objects ''dir'' method. Additionally the pydocs will also be provided, and docstrings are provided for most things. Additionally, I do not consider this library to be anywhere close to complete. I wrote this to simplify my tasks and made many many changes on the fly as new functionality became needed. There are substantial areas that need to be cleaned up, however it is functional for what I needed it to do. I encourage everyone to provide feedback, additions, and edits where necessary. Hopefully this work is useful for others as it has been for me so far.
 
 <br>
 
@@ -34,10 +36,23 @@ Pip install wheel file.
 
 To begin using the library, import the 'datorama' class from Datorama.
 
+```
 from Datorama import datorama
+```
+
 Next, instantiate the datorama class and pass your api token.
 
-dr = datorama(api_token,verbose=False,pause=.5,platform_rate_pause=30,restore_spaces=True,restore_streams=True,restore_jobs=False)
+```
+dr = datorama(
+    api_token,
+    verbose=False,
+    pause=.1,
+    restore_spaces=False,
+    restore_streams=False,
+    restore_jobs=False
+)
+```
+
 You should now be ready to get started.
 
 ### General Class Structure
@@ -52,7 +67,7 @@ You should now be ready to get started.
 &emsp;&emsp;|_  **Job** <br>
 &emsp;&emsp;&emsp;| *- functions (rerun)* <br>
 &emsp;&emsp;&emsp;| *- attrs (id, startDate, etc)* <br>
-|_ **errors** <br>
+|_ **errors** (Should be phased out eventually as it has become unecessary)<br>
 &emsp;| - *custom exceptions* <br>
 |_ **Timer** <br>
 &emsp;| - *execution timer and estimator* <br>
@@ -64,18 +79,28 @@ You should now be ready to get started.
 
 #### **Workspaces**
 
-Datorama divides each account into a set of workspaces, which represents an individual work environment. The workspace api enables the management and setup of the workspaces (https://developers.datorama.com/docs/manage/workspaces/). The pyDatorama library represents this object as a class with the attributes and functions that are associated to each workspace. Each account has a list of workspaces, and since most platform operations are performed at the datastream level the workspaces are retreived automatically at instantiation.
+Datorama divides each account into a set of workspaces, which represents an individual work environment. The workspace api enables the management and setup of the workspaces (https://developers.datorama.com/docs/manage/workspaces/). The pyDatorama library represents this object as a class with the attributes and functions that are associated to each workspace. Each account has a list of workspaces, and since most platform operations are performed at the datastream level the workspaces are retreived by default at instantiation.
 
-dr = datorama(api_token,verbose=False,pause=.5,platform_rate_pause=30,restore_spaces=True,restore_streams=True,restore_jobs=False)
-If the *'restore_spaces'* parameter is set, pyDatorama will create the workspace objects based on the last workspace request retreived from the api. Otherwise, pyDatorama will call the *'List all permitted workspaces'* endpoint from the api and these objects will be created from this output.
+```
+dr = datorama(
+    api_token,
+    verbose=False,
+    pause=.1,
+    restore_spaces=False,
+    restore_streams=False,
+    restore_jobs=False
+)
+```
 
-The workspace objects act as a manager of the datastreams that belong to them. In rerun or process jobs, each datastream will check with the workspace to ensure that there is enough capacity to take on an additional job. To complete this process, the workspace will go through each active stream and request an update on the jobs that belong to it. To limit the calls to the api, the workspace will first evaluate that a minimally sufficient time has passed based on the number of active jobs before calling the api to check the status.
+If the *'restore_spaces'* parameter is set, pyDatorama will create the workspace objects based on the last workspace request retreived from the api. Otherwise, pyDatorama will call the *'List all permitted workspaces'* endpoint from the API and these objects will be created from this output.
+
+The workspace objects act as a manager of the datastreams that belong to them. In rerun or process jobs, each datastream has the ability to check with the workspace to ensure that there is enough capacity to take on an additional job. This is set at the workspace level (the *workspace.throttle* attribute) and is not the default behavior as for most cases it is unnecessary. To complete this process, the workspace will go through each active stream and request an update on the jobs that belong to it. To limit the calls to the api, the workspace will first evaluate that a minimally sufficient time has passed based on the number of active jobs before calling the API to check the status. Again, this behavior is typically not required and is only needed in specific circumstances.
 
 <br>
 
 #### **Datastream**
 
-A data stream in Datorama is a connection to a data source. The data stream api allows setup and management of API data streams (https://developers.datorama.com/docs/manage/data-streams/). The Stream object in pyDatorama represents this object as a class with the attributes and functions that are associated to each stream. Each workspace has a list of data streams, and these can be populated through calling the workspace function or by restoring the last streams that were retrieved for the active workspace if the *restore_streams* parameter is set on instantiation.
+A data stream in Datorama is a connection to a data source. The data stream API allows setup and management of API data streams (https://developers.datorama.com/docs/manage/data-streams/). The Stream object in pyDatorama represents this object as a class with the attributes and functions that are associated to each stream. Each workspace has a list of data streams, and these can be populated through calling the workspace function or by restoring the last streams that were retrieved for the active workspace if the *restore_streams* parameter is set on instantiation.
 
 <br>
 
@@ -92,15 +117,15 @@ The Timer object exists only to provide timing feedback to the user.
 
 <br>
 
-#### **errors**
+#### **Errors**
 
-The errors module is a collection of custom error classes to provide more specific feedback to the user.
+The errors module is a collection of custom exception classes to provide more specific feedback to the user. These exception classes should eventually be phased out as they are unnecessary.
 
 <br>
 
 #### **Connection**
 
-The Connection class handles all connections to the Datorama api; This is to ensure that all requests pass through a common object, which allows robust throughput management. The connection creates a connection profile object that can be accessed by multiple instances of pyDatorama to ensure that requests do not surpass rate limits. Every response from the api contains updated rate counts and reset times that are passed to the shared profile. Each instance of the connection will store a history of the endpoints that were called for additional debugging.
+The Connection class handles all connections to the Datorama api; This is to ensure that all requests pass through a common object, which allows improved call management. The connection creates a connection profile object that can be accessed by multiple instances of pyDatorama to ensure that requests do not surpass rate limits. Every response from the API contains updated rate counts and reset times that are passed to the shared profile. Each instance of the connection will store a history of the endpoints that were called for additional debugging.
 
 <br>
 
@@ -112,7 +137,7 @@ The Connection class handles all connections to the Datorama api; This is to ens
 
 #### *Workspaces*
 
-When you instantiate the 'datorama' object it automatically retrieves all of the workspace data. These spaces are accessble through the datarama.workspaces attribute. Currently, this attribute is a dictionary in the format {id:*workspace*}. Each workspace object contains all the metadata for the space as well as workspace specific functions such as the ability to retrieve all the data streams that belong to it.
+When you instantiate the 'datorama' object it retrieves all of the workspace data by default. These spaces are accessble through the *datarama.workspaces* attribute. Currently, this attribute is a dictionary in the format {id:*workspace*}. Each workspace object contains all the metadata for the space as well as workspace specific functions such as the ability to retrieve all the data streams that belong to it.
 
 #### *Datastream*
 
@@ -125,19 +150,19 @@ This function loops through each workspace and calls its 'get_streams' function.
 - create_df <br>
   Whether to create a data frame of the stream data.
 - workspaces <br>
-  List of the workspaces to collect streams from, collects all by default.
+  List of the workspace ids to collect streams from, collects all by default.
 
 #### *Jobs*
 
-To retrieve the job data for all streams, you should call the 'get_all_jobs_meta' function of the datorama class.
+To retrieve the job data for all streams, you should call the 'get_all_jobs_meta' function of the datorama class. Please note that this process can consume a considerable amount of time and API calls. A token is limited to 60 platform calls/minute and 20k/day. If you have 5k streams, this process will take at least ~83 minutes to complete. In many cases it is probably better to identify the specific streams you require job data from and iterate through these streams and calling the *Stream.get_stream_runs* function. Getting stream jobs by either method will create and store job objects within the *datorama.jobs* attribute for convenience. There is also a function available that converts these objects' attributes into a Pandas dataframe. Additionally, each job object has a function available that downloads the actual raw data from that job.
 
 ##### *datorama.get_all_jobs()*
 
-This function loops through all data streams and uses the 'get_stream_runs' function of the 'Streams' class to collect the run data for the stream. *Note: This will make at least one call to the api per stream in the datorama.streams dictionary depending on the number of jobs in the stream.*
+This function loops through all data streams and uses the 'get_stream_runs' function of the 'Streams' class to collect the run data for the stream. *Note: This will make at least one call to the API per stream in the datorama.streams dictionary depending on the number of jobs in the stream.*
 
 ##### *Stream.get_stream_runs(**pgSize=100,pgNum=1**)*
 
-There may be cases where you do not want to return all jobs for all streams as this can be a lot of data; In addition, there may be thousands of streams and at most 60 call per minute may be made and could take some time to finish. In this case it may be more fitting to access the streams that you want run data for directly through this function.
+There may be cases where you do not want to return all jobs for all streams as this can be a lot of data; In addition, there may be thousands of streams and at most 60 call per minute may be made and could take some time to finish. In this case it may be more fitting to access the streams that you want run data for directly through this function. Also, it would probably be wise to specify a large page size to avoid multiple calls being made to collect the job data.
 
 #### *Mapping*
 
@@ -167,7 +192,7 @@ This function can be accessed from the workspace object and will populate it's h
 
 ### *Processing*
 
-Currently there are two ways to process a stream: The first and more useful method is through the 'datorama' class 'bulk_process_streams' function. The second is through the 'Stream' class 'process' function.
+Currently there are three ways to process a stream: The first and most common method is through the 'datorama' class 'bulk_process_streams' function. The second is through the 'Stream' class 'process' function. The third method is through the ''process_stream_batch' function.
 
 #### *datorama.bulk_process_streams(**streams,starts,ends,d_range=10,create_df=True,export=False,file_name='job_log'**)*
 
@@ -198,6 +223,10 @@ The bulk_process_streams function packages bulk requests to be submitted to this
 The start day of the process range, formatted as yyyy-mm-dd.
 -end <br>
 The end day of the process range, formatted as yyyy-mm-dd.
+
+#### *datorama.bulk_process_streams(**streams,start,end**)**
+
+This method is particularly useful when you have many streams to process with the same start and end dates. It makes a single call to process each of the listed streams. Typically, I will group a list of streams by start and end dates and then pass each group to this function to conserve api calls.
 
 <br>
 
@@ -248,7 +277,7 @@ This function also takes no arguments. It belongs to the 'Job' class and infers 
 
 ### *Updates*
 
-There are two functions available to update the metadata for the datastreams. One is a generic 'update_stream' function belonging to the 'Stream' class, and the other is the 'bulk_rename_streams' function of the 'datorama' class. The bulk rename function leverages the update function of each stream.
+There are three functions available to update the metadata for the datastreams. One is a generic 'update_stream' function belonging to the 'Stream' class, and the other is the 'bulk_rename_streams' function of the 'datorama' class. The bulk rename function leverages the update function of each stream. The final and most useful is the *stream.patch* function. This function allows you to update a single or multiple parameters of the stream configuration by passing a dictionary.
 
 #### *datorama.bulk_rename_streams(**streams,names,export=True,update_file='update_log.csv'**)*
 
@@ -264,5 +293,16 @@ There are two functions available to update the metadata for the datastreams. On
 #### *Stream.update_stream(**params**)*
 
 This function accepts a dictionary of parameters to update the metadata of the stream to.
+
 - params
-Dictionary of new values.
+  Dictionary of new values.
+
+#### *Stream.patch(**params**)*
+
+
+This function accepts a dictionary of parameters to update the metadata of the stream to.
+
+- params
+  Dictionary of new values.
+
+The main difference between this function and the update_stream function is that the update_stream function uses an endpoint that requires the entire configuration of the stream to be specified. To make this easier to use, this function updates the current configuration of the stream (in the *stream.config* attribute) based on the update params. Conversely, the patch function's endpoint just requires the values that are being changed to be specified. Ultimately this is a far safer and simpler practice and therefore should be the preferred usage.
