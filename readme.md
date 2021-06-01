@@ -33,6 +33,8 @@ Not all functionality is present in this document. Functions and attributes can 
 Pip install wheel file.
 
 https://github.com/meow1928/pyDatorama/blob/master/dist/pyDatorama-0.10-py3-none-any.whl
+https://pypi.org/manage/project/pyDatorama/releases/
+
 
 #### *Using the library*
 
