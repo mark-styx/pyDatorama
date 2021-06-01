@@ -5,6 +5,6 @@ setup(
     packages=find_packages(),
     version='0.10',
     description="A Python API wrapping library for Salesforce's datorama platform.",
-    author='Mark Styx',
+    author='meow1928',
     install_requires=['pandas']
 )
